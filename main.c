@@ -4,17 +4,16 @@
 #include "utils.h"
 #include "gamelogic.h"
 
-// compilar con gcc main.c utils.c gamelogic.c -lSDL2 -lSDL2_ttf -lSDL2_image
+// compilar con make
 
 // variables globales para ser usadas en otros archivos.
 TTF_Font *font = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Window *window = NULL;
-struct map map = {11, 11};
-int running = 1, options = 0, game = 0;
+int running = 1, options = 0, game = 0, turns = 300;
 
 
-int main() {
+int main(int argc, char *argv[]) {
     
     if (init() == EXIT_FAILURE) // definido en utils.
         return EXIT_FAILURE;
@@ -24,7 +23,6 @@ int main() {
     SDL_Event event;
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     int selection = 0;
 
     while (running) {

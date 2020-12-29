@@ -1,6 +1,7 @@
 #include "utils.h"
+#include <SDL2/SDL_pixels.h>
 
-void print_text(char *text, SDL_Rect rect, float scale, SDL_Color color) {
+void print_text(const char *text, SDL_Rect rect, float scale, SDL_Color color) {
     SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     rect.w = surface->w * scale;
@@ -10,20 +11,14 @@ void print_text(char *text, SDL_Rect rect, float scale, SDL_Color color) {
     SDL_DestroyTexture(texture);
 }
 
-void render_image(/*char *name*/ SDL_Texture *image_texture, SDL_Rect rect, float scale) {
-    //SDL_Surface *image_surface = IMG_Load(name);
-    //SDL_Texture *image_texture = SDL_CreateTextureFromSurface(renderer, image_surface);
-    //rect.w = image_surface->w * scale;
-    //rect.h = image_surface->h * scale;
+void render_image(SDL_Texture *image_texture, SDL_Rect rect, float scale) {
     SDL_QueryTexture(image_texture, NULL, NULL, &(rect.w), &(rect.h));
     rect.w *= scale;
     rect.h *= scale;
     SDL_RenderCopy(renderer, image_texture, NULL, &rect);
-    //SDL_FreeSurface(image_surface);
-    //SDL_DestroyTexture(image_texture);
 }
 
-SDL_Texture *load_image(char *name) {
+SDL_Texture *load_image(const char *name) {
     SDL_Surface *image_surface = IMG_Load(name);
     SDL_Texture *image_texture = SDL_CreateTextureFromSurface(renderer, image_surface);
     SDL_FreeSurface(image_surface);
@@ -54,7 +49,7 @@ int init() {
         SDL_Quit();
         return EXIT_FAILURE;
     }
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);//|SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         printf("Error al crear el renderer\n");
         SDL_DestroyWindow(window);
@@ -72,3 +67,18 @@ void quit() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
+
+double get_delta_time() {
+    static Uint64 LAST = 0;
+    double delta_time = 0;
+    Uint64 NOW = SDL_GetPerformanceCounter();
+    printf("NOW = %ld\n", NOW);
+    printf("LAST = %ld\n", LAST);
+
+    LAST = NOW;
+    NOW = SDL_GetPerformanceCounter();
+    delta_time = ((NOW - LAST)*100 / (double)SDL_GetPerformanceFrequency());
+
+    return delta_time;
+}
+
