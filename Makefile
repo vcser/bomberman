@@ -1,19 +1,24 @@
 OBJDIR = obj
-OBJ = $(patsubst %.c,$(OBJDIR)/%.o,$(wildcard *.c))
+SRCDIR = src
+OBJ = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(wildcard $(SRCDIR)/*.c))
 LIBS = -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
+DEPS = ##$(wildcard $(SRCDIR)/*.h)
 
-bomberman: $(OBJ)
+
+bomberman: $(OBJ) $(DEPS)
 	gcc $^ -o $@ $(LIBS)
 
-windows: $(OBJ)
+windows: $(OBJ) $(DEPS)
 	gcc $^ -o bomberman.exe -lmingw32 $(LIBS)
 
-$(OBJDIR)/%.o: %.c utils.h gamelogic.h graphics.h | $(OBJDIR)
+$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	gcc -c $< -o $@
 
 $(OBJDIR):
 	mkdir $@
 
+
+.PHONY: clean
 clean:
-	rm -r $(OBJDIR)
-	rm bomberman*
+	-rm -r $(OBJDIR)
+	-rm bomberman*

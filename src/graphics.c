@@ -1,10 +1,20 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
 #include "utils.h"
-#include "gamelogic.h"
+#include "player.h"
+#include "map.h"
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
 #include <stdio.h>
 #include <string.h>
+#include <SDL2/SDL_image.h>
+
+extern SDL_Renderer *renderer;
+
+static SDL_Surface *hard_block_surface;
+static SDL_Surface *soft_block_surface;
+static SDL_Surface *bomb_surface;
+static SDL_Surface *door_surface;
+static SDL_Surface *flame_powerup_surface;
+static SDL_Surface *bomb_powerup_surface;
 
 void camera_present(struct player *player, struct map *map) {
     SDL_Rect player_on_screen = {WINDOW_WIDTH/2/*-22*3/2*/,WINDOW_HEIGHT/2/*-16*3/2*/, 16*3,16*3};
@@ -45,19 +55,15 @@ void camera_present(struct player *player, struct map *map) {
     SDL_RenderCopy(renderer, player->texture, NULL, &player_on_screen);
 }
 
-SDL_Texture *update_map_texture(const struct map *map) {
+SDL_Texture *create_map_texture(struct map *map) {
     SDL_Texture *map_texture;
     SDL_Surface *map_surface;
-    SDL_Surface *hard_block_surface = IMG_Load("assets/hard_block.png");
-    SDL_Surface *soft_block_surface = IMG_Load("assets/soft_block.png");
-    SDL_Surface *bomb_surface = IMG_Load("assets/bomb.png");
-    int spacing = 0;
-    //int block_scale = 3;
-    //if (map->w >= 17 && map->h >= 13)
+    //SDL_Surface *hard_block_surface = IMG_Load("assets/hard_block.png");
+    //SDL_Surface *soft_block_surface = IMG_Load("assets/soft_block.png");
+    //SDL_Surface *bomb_surface = IMG_Load("assets/bomb.png");
+    
     map_surface = SDL_CreateRGBSurfaceWithFormat(0, map->w*hard_block_surface->w, map->h*hard_block_surface->h, 32, hard_block_surface->format->format);
-    //else
-    //    map_surface = SDL_CreateRGBSurfaceWithFormat(0, 17*hard_block_surface->w, 13*hard_block_surface->h, 32, hard_block_surface->format->format);
-
+    
     SDL_Rect dst_rect = {0,0,hard_block_surface->w,hard_block_surface->h};
     
     for (int i = 0; i < map->h; i++) {
@@ -66,17 +72,46 @@ SDL_Texture *update_map_texture(const struct map *map) {
             dst_rect.x = j*hard_block_surface->w;
             if (map->map[i][j] == '#')
                 SDL_BlitSurface(hard_block_surface, NULL, map_surface, &dst_rect);
-            else if (map->map[i][j] == '%')
+            else if (map->map[i][j] == '%' || map->map[i][j] == 'P')
                 SDL_BlitSurface(soft_block_surface, NULL, map_surface, &dst_rect);
             else if (map->map[i][j] == 'Q')
                 SDL_BlitSurface(bomb_surface, NULL, map_surface, &dst_rect);
+            else if (map->map[i][j] == 'F')
+                SDL_BlitSurface(flame_powerup_surface, NULL, map_surface, &dst_rect);
+            else if (map->map[i][j] == 'B')
+                SDL_BlitSurface(bomb_powerup_surface, NULL, map_surface, &dst_rect);
+            else if (map->map[i][j] == '*')
+                SDL_BlitSurface(door_surface, NULL, map_surface, &dst_rect);
         }
     }
 
     map_texture = SDL_CreateTextureFromSurface(renderer, map_surface);
-    SDL_FreeSurface(bomb_surface);
     SDL_FreeSurface(map_surface);
+    //SDL_FreeSurface(bomb_surface);
+    //SDL_FreeSurface(hard_block_surface);
+    //SDL_FreeSurface(soft_block_surface);
+    return map_texture;
+}
+
+void update_map_texture(struct map *map) {
+    SDL_DestroyTexture(map->texture);
+    map->texture = create_map_texture(map);
+}
+
+void init_graphics() {
+    flame_powerup_surface = IMG_Load("assets/flame_powerup.png");
+    bomb_powerup_surface = IMG_Load("assets/bomb_powerup.png");
+    hard_block_surface = IMG_Load("assets/hard_block.png");
+    soft_block_surface = IMG_Load("assets/soft_block.png");
+    bomb_surface = IMG_Load("assets/bomb.png");
+    door_surface = IMG_Load("assets/door.png");
+}
+
+void clean_graphics() {
+    SDL_FreeSurface(bomb_powerup_surface);
+    SDL_FreeSurface(flame_powerup_surface);
+    SDL_FreeSurface(door_surface);
+    SDL_FreeSurface(bomb_surface);
     SDL_FreeSurface(hard_block_surface);
     SDL_FreeSurface(soft_block_surface);
-    return map_texture;
 }
