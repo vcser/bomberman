@@ -2,9 +2,7 @@
 #define POWERUPS_H
 
 #include "player.h"
-//#include "bomb.h"
 #include "map.h"
-//#include "graphics.h"
 
 void create_powerups(struct map *map);
 int get_pwup_count(struct map *map);

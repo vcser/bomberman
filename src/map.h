@@ -2,14 +2,14 @@
 #define MAP_H
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_rect.h>
+#include "enemies.h"
 
 struct map {
     int w;
     int h;
     char **map;
     SDL_Texture *texture;
-    //struct powerup *pwups_list;
+    struct enemy *enemies;
     SDL_Point exit;
 };
 

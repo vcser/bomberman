@@ -35,8 +35,8 @@ char **create_map(int map_h, int map_w) {
     // se llena al azar con bloques blandos '%'.
     for (int i = 1; i < map_h - 1; i++)
         for (int j = 1; j < map_w - 1; j++)
-            // si el espacio esta vacio y rand() es par (50 y 50), se cambia por un bloqe blando.
-            if (map[i][j] == ' ' && rand()%2)
+            // si el espacio esta vacio y rand() es divisible por 3, se cambia por un bloqe blando.
+            if (map[i][j] == ' ' && !(rand()%3))
                 map[i][j] = '%';
     
     // esto es para asegurarse que la esquina donde aparece el jugador este vacia.
@@ -47,6 +47,7 @@ char **create_map(int map_h, int map_w) {
     return map;
 }
 
+// retorna 1 si hay al menos "count" bloques destructibles
 int map_ok(struct map *map, unsigned int count) {
     int c = 0;
     for (int i = 0; i < map->w; i++)

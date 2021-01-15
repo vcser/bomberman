@@ -4,35 +4,37 @@
 #include "graphics.h"
 #include "bomb.h"
 #include "powerups.h"
+#include "audio.h"
+#include "enemies.h"
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-#include <string.h>
-#include <stdio.h>
 
 // variables globales para ser usadas en otros archivos.
 TTF_Font *font = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Window *window = NULL;
-struct map map = {23, 23};
+struct map map = {19, 19};
 struct player player;
+int running = 1, game = 0, turns = 500;
 
-int running = 1, options = 0, game = 0, turns = 300;
-
+static int  options = 0;
 
 void options_menu();
 void run_game();
 
 void mainloop() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    play_audio(BGM);
 
     int selection = 0;
     
     SDL_Event event;
     while (running) {
         while (SDL_PollEvent(&event)) {
-            // si se presiona la x de la ventana se cierra el programa.
             if (event.type == SDL_QUIT)
                 running = 0;
             if (event.type == SDL_KEYDOWN)
@@ -48,15 +50,9 @@ void mainloop() {
                     case SDLK_RETURN:
                     case SDLK_z:
                         switch (selection) {
-                            case 0:
-                                game = 1;
-                                break;
-                            case 1:
-                                options = 1;
-                                break;
-                            case 2:
-                                running = 0;
-                                break;
+                            case 0: game = 1; break;
+                            case 1: options = 1; break;
+                            case 2: running = 0; break;
                         }
                         break;
                 }
@@ -64,7 +60,6 @@ void mainloop() {
         
         SDL_RenderClear(renderer);
 
-        // funcion print_text definida en utils.
         print_text("BOMBERMAN", (SDL_Rect) {100, 100}, 6, (SDL_Color) {32, 255, 255, 255});
         print_text("Start Game", (SDL_Rect) {300, 332}, 2, (SDL_Color) {255, 255*(selection!=0), 255*(selection!=0), 255});
         print_text("Options", (SDL_Rect) {300, 364}, 2, (SDL_Color) {255, 255*(selection!=1), 255*(selection!=1), 255});
@@ -73,10 +68,10 @@ void mainloop() {
         SDL_RenderPresent(renderer);
 
         if (options)
-            options_menu(); // menu de opciones. definido en gamelogic.
+            options_menu();
 
         if (game)
-            run_game(); // se inicia el juego. definido en gamelogic.
+            run_game();
     }
 }
 
@@ -173,37 +168,36 @@ void options_menu() {
 void run_game() {
     SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
     
-    // se inicializan las variables
+    // se inicializan las variables del jugador
     player.texture = load_image("assets/player.png"); // textura del jugador.
     player.x = 1;
     player.y = 1;
-    //player.speed = 1;
     player.bomb_length = 1;
     player.max_bombs = 1;
     player.bomb_list = malloc(sizeof(struct bomb));
-    for (int i = 0; i < player.max_bombs; i++) {
-        player.bomb_list[i].time = -1;
-        player.bomb_list[i].x = 1;
-        player.bomb_list[i].y = 1;
-    }
+    player.bomb_list[0].time = -1;
+    player.bomb_list[0].x = 1;
+    player.bomb_list[0].y = 1;
 
     // se crea el mapa
     map.map = create_map(map.h, map.w);
-    while (!map_ok(&map, 1)) {
+    while (!map_ok(&map, 1)) { // si no hay espacio para la salida se crea de nuevo
         free_map(&map);
         map.map = create_map(map.h, map.w);
     }
-    map.texture = create_map_texture(&map);
     create_exit(&map);
     create_powerups(&map);
+    map.enemies = create_enemies();
+    map.texture = create_map_texture(&map);
 
     int c = turns;
+    play_audio(IGM);
 
     while (game) {
-
+        //posicion anterior del jugador usada para deteccion de colisiones
         SDL_Point prev = {player.x, player.y};
         int moved = 0;
-
+        
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT){
@@ -229,24 +223,22 @@ void run_game() {
                         moved = 1;
                         break;
                     case SDLK_x:
-                        moved = 1;
+                        moved = 2;
                         break;
-                    
-                    case SDLK_z:
+                    case SDLK_z: // poner bombas
                         for (int i = 0; i < player.max_bombs; i++) {
-                            if (player.bomb_list[i].time == -1) {
+                            if (map.map[player.y][player.x] != 'Q' && player.bomb_list[i].time == -1) {
                                 player.bomb_list[i].x = player.x;
                                 player.bomb_list[i].y = player.y;
                                 player.bomb_list[i].time = 5;
                                 map.map[player.bomb_list[i].y][player.bomb_list[i].x] = 'Q';
-
                                 update_map_texture(&map);
+                                play_audio(BOMB);
                                 //moved = 1;
                                 break;
                             }
                         }
                         break;
-                    
                     case SDLK_ESCAPE:
                         game = 0;
                         break;
@@ -255,10 +247,13 @@ void run_game() {
         }
 
         if (moved) {
+            play_audio(MOVE);
+            
             if (map.map[player.y][player.x] == '*') {
+                play_audio(WIN);
                 game = 0;
             }
-
+            // si el jugador se movio a un espacio no valido se devuelve su posicion a la anterior y no se restan turnos.
             if (map.map[player.y][player.x] == '#' || map.map[player.y][player.x] == '%' || map.map[player.y][player.x] == 'P' || (player.x != prev.x && player.y != prev.y) || (map.map[prev.y][prev.x] != 'Q' && map.map[player.y][player.x] == 'Q') || (map.map[prev.y][prev.x] == 'Q' && map.map[player.y][player.x] == 'Q' && (prev.x != player.x || prev.y != player.y))) {
                 player.x = prev.x;
                 player.y = prev.y;
@@ -267,6 +262,15 @@ void run_game() {
                 for (int i = 0; i < player.max_bombs; i++) 
                     if (player.bomb_list[i].time > 0)
                         player.bomb_list[i].time--;
+                
+                for (int i = 0; i < get_pwup_count(&map); i++)
+                    if (map.enemies[i].status)
+                        move_enemies(&map.enemies[i]);
+                
+                if (map.map[player.y][player.x] == 'E') {
+                    play_audio(LOSE);
+                    game = 0;
+                }
             }
 
             if (map.map[player.y][player.x] == 'F') {
@@ -279,7 +283,7 @@ void run_game() {
                 map.map[player.y][player.x] = ' ';
                 update_map_texture(&map);
             }
-
+            clean_map();
             c--;
         }
 
@@ -288,43 +292,36 @@ void run_game() {
                 explode_bomb(&player.bomb_list[i]);
         }
 
-        // se renderiza el mapa y el jugador
-        SDL_RenderClear(renderer);
+        SDL_RenderClear(renderer); // limpiar pantalla
 
-        camera_present(&player, &map);
-
-
+        camera_present(&player, &map); // se renderiza el mapa y el jugador
         //////////////////////////////
-        char *str = (char*) malloc(4*sizeof(char));
-        snprintf(str, 4, "%d", player.x);
-        print_text(str, (SDL_Rect) {0,0}, 3, (SDL_Color) {255,0,0,255});
-        snprintf(str, 4, "%d", player.y);
-        print_text(str, (SDL_Rect) {0,1*16*3}, 3, (SDL_Color) {255,0,0,255});
-        snprintf(str, 4, "%d", c);
-        print_text(str, (SDL_Rect) {0,2*16*3}, 3, (SDL_Color) {255,0,0,255});
-        //snprintf(str, 4, "%d", bomb.time);
-        //print_text(str, (SDL_Rect) {0,3*16*3}, 3, (SDL_Color) {255,0,0,255});
+        // imprimir turnos restantes
+        SDL_Texture *panel = load_image("assets/panel.png");
+        SDL_Rect dst_rect = {WINDOW_WIDTH/2-95,3,190,3*12};
+        SDL_RenderCopy(renderer, panel, NULL, &dst_rect);
+        char *str = (char*) malloc(12*sizeof(char));
+        snprintf(str, 12, "TURNS: %d", c);
+        print_text(str, (SDL_Rect) {WINDOW_WIDTH/2-85,4}, 2, (SDL_Color) {255,0,0,255});
         free(str);
+        SDL_DestroyTexture(panel);
         //////////////////////////////
 
-
-        //SDL_RenderSetViewport(renderer, &camera);
         SDL_RenderPresent(renderer);
 
-        if (c <= 0) {
+        if (c <= 0) { // si se acaban los turnos termina el juego
+            play_audio(LOSE);
             game = 0;
             printf("Se acabaron los turnos\n");
         }
     }
 
-    //turns = 300;
-
+    //liberar memoria y terminar el juego.
+    SDL_DestroyTexture(player.texture);
     free(player.bomb_list);
-    //liberar memoria del mapa y terminar el juego.
     free_map(&map);
     SDL_DestroyTexture(map.texture);
-    SDL_SetWindowTitle(window, "BOMBERMAN");
     SDL_DestroyTexture(player.texture);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    game = 0;
+    play_audio(BGM);
 }

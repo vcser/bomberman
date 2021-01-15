@@ -6,7 +6,6 @@
 struct player {
     int x;
     int y;
-    //int speed;
     SDL_Texture *texture;
     struct bomb *bomb_list;
     int bomb_length;

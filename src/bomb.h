@@ -1,8 +1,6 @@
 #ifndef BOMB_H
 #define BOMB_H
 
-#include <SDL2/SDL.h>
-
 struct bomb {
     int x;
     int y;
@@ -10,5 +8,9 @@ struct bomb {
 };
 
 void explode_bomb(struct bomb *bomb);
+
+void clean_map();
+
+struct bomb *get_bomb(int x, int y);
 
 #endif
