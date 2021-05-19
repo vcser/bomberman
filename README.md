@@ -14,3 +14,6 @@ Controls:
 - z to place a bomb
 - x to wait a turn
 - esc to exit the game
+
+## Screenshot
+![screenshot](screenshot.png)
