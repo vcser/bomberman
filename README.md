@@ -1,4 +1,5 @@
 # bomberman
+Final project for programming 1.
 
 compile with make
 
